@@ -4,6 +4,7 @@ use rand::Rng;
 
 pub type SnakeCell = (i32, i32);
 
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Direction {
     UP,
     DOWN,
@@ -11,8 +12,9 @@ pub enum Direction {
     RIGHT
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum State {
+    PAUSED,
     RUNNING,
     DEAD,
     WIN
@@ -24,22 +26,21 @@ pub struct Game {
     pub height: i32,
     pub width: i32,
     last_update: f64,
-    tick_time: f64,
-    state: State,
+    pub tick_time: f64,
+    pub state: State,
     input_queue: LinkedList<Key>,
 }
 
 impl Game {
-    pub fn new(height: i32
-, width: i32) -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
         let mut game = Self {
             snake: Snake::new(),
             apple: (0, 0),
             height: height,
             width: width,
             last_update: 0.0,
-            tick_time: 0.4,
-            state: State::RUNNING,
+            tick_time: 0.3,
+            state: State::PAUSED,
             input_queue: LinkedList::new(),
 
         };
@@ -66,6 +67,8 @@ impl Game {
         if let Some(Button::Keyboard(key)) = e.press_args() {
             match key {
                 Key::W | Key::A | Key::S | Key::D => self.input_queue.push_back(key),
+                Key::P => self.pause(),
+                Key::R => self.reset(),
                 _ => ()
             }
         }
@@ -84,17 +87,26 @@ impl Game {
         }
     }
 
-    fn tick(&mut self) {
+    fn process_input(&mut self) {
+        let old_dir = self.snake.direction;
 
-        if let Some(key) = self.input_queue.pop_front() {
-            match key {
-                Key::W => self.snake.direction = Direction::UP,
-                Key::A => self.snake.direction = Direction::LEFT,
-                Key::S => self.snake.direction = Direction::DOWN,
-                Key::D => self.snake.direction = Direction::RIGHT,
-                _ => ()
+        while old_dir == self.snake.direction && !self.input_queue.is_empty() {
+
+            if let Some(key) = self.input_queue.pop_front() {
+                match key {
+                    Key::W => if self.snake.direction != Direction::DOWN { self.snake.direction = Direction::UP },
+                    Key::A => if self.snake.direction != Direction::RIGHT { self.snake.direction = Direction::LEFT },
+                    Key::S => if self.snake.direction != Direction::UP { self.snake.direction = Direction::DOWN },
+                    Key::D => if self.snake.direction != Direction::LEFT { self.snake.direction = Direction::RIGHT },
+                    _ => ()
+                }
             }
         }
+    }
+
+    fn tick(&mut self) {
+        self.process_input();
+        
 
         let new_head = match self.snake.direction {
             Direction::UP => (self.snake.head.0, self.snake.head.1 - 1),
@@ -113,6 +125,10 @@ impl Game {
             }
 
         // Hit self
+        if self.snake.check_crash(&new_head) {
+            self.die();
+            return;
+        }
 
         // Eat apple
         let eat_apple = new_head == self.apple;
@@ -122,12 +138,29 @@ impl Game {
 
         if eat_apple {
             self.new_apple();
-            self.tick_time = self.tick_time * 0.9;
+            self.tick_time = self.tick_time * 0.95;
         }
     }
 
     fn die(&mut self) {
         self.state = State::DEAD;
+    }
+
+    fn pause(&mut self) {
+        match self.state {
+            State::RUNNING => self.state = State::PAUSED,
+            State::PAUSED => self.state = State::RUNNING,
+            _ => ()
+        }
+    }
+
+    fn reset(&mut self) {
+        self.snake = Snake::new();
+        self.last_update = 0.0;
+        self.tick_time = 0.4;
+        self.state = State::PAUSED;
+        self.input_queue = LinkedList::new();
+        self.new_apple();
     }
 }
 
@@ -157,6 +190,10 @@ impl Snake {
         }
         self.body.push_front(self.head);
         self.head = new_head;
+    }
+
+    pub fn check_crash(&mut self, new_head: &SnakeCell) -> bool {
+        self.body.contains(new_head)
     }
     
 }

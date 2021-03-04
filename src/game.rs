@@ -176,7 +176,7 @@ impl Game {
     fn reset(&mut self) {
         self.snake = Snake::new();
         self.last_update = 0.0;
-        self.tick_time = 0.4;
+        self.tick_time = 4.0/self.width as f64;
         self.state = State::START;
         self.input_queue = LinkedList::new();
         self.new_apple();

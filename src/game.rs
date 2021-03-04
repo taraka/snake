@@ -39,7 +39,7 @@ impl Game {
             height: height,
             width: width,
             last_update: 0.0,
-            tick_time: 0.3,
+            tick_time: 5.0/width as f64,
             state: State::PAUSED,
             input_queue: LinkedList::new(),
 

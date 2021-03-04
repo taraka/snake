@@ -11,6 +11,7 @@ const COLOR_APPLE: Color = [0.9, 0.3, 0.3, 1.0];
 const COLOR_SNAKE: Color = [0.2, 0.7, 0.2, 1.0];
 const COLOR_SNAKE_DEAD: Color = [0.35, 0.2, 0.03, 1.0];
 const COLOR_SNAKE_HEAD: Color = [0.1, 0.6, 0.2, 1.0];
+const COLOR_SNAKE_BOOST: Color = [0.5, 0.1, 0.1, 1.0];
 const COLOR_SNAKE_EYES: Color = [0.0, 0.0, 0.0, 1.0];
 const COLOR_GRID: Color = [0.9, 1.0, 0.9, 1.0];
 const PADDING: f64 = 10.0;
@@ -52,7 +53,11 @@ pub fn draw_game<G: Graphics, C>(game: &Game, args: &RenderArgs, glyphs: &mut C,
         .draw([PADDING, header_height, grid_width, grid_height], &c.draw_state, c.transform, g);
 
     // Draw Snake Head
-    Rectangle::new(COLOR_SNAKE_HEAD)
+    let head_color = match game.boost {
+        true => COLOR_SNAKE_BOOST,
+        false => COLOR_SNAKE_HEAD
+    };
+    Rectangle::new(head_color)
             .draw([PADDING + (game.snake.head.0 as f64 * cell_width)+1.0, header_height + (game.snake.head.1 as f64 * cell_height)+1.0, cell_width-1.0, cell_height-1.0], &c.draw_state, c.transform, g);
 
     if game.snake.direction == Direction::RIGHT || game.snake.direction == Direction::DOWN {

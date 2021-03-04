@@ -29,7 +29,7 @@ pub struct Game {
     pub tick_time: f64,
     pub state: State,
     input_queue: LinkedList<Key>,
-    boost_key: ButtonState,
+    pub boost: bool,
 }
 
 impl Game {
@@ -43,7 +43,7 @@ impl Game {
             tick_time: 4.0/width as f64,
             state: State::START,
             input_queue: LinkedList::new(),
-            boost_key: ButtonState::Release,
+            boost: false,
         };
 
         game.new_apple();
@@ -58,7 +58,7 @@ impl Game {
             self.last_update += args.dt;
 
 
-            let tick_time = if self.boost_key == ButtonState::Press {
+            let tick_time = if self.boost {
                 self.tick_time / 2.0
             } else {
                 self.tick_time
@@ -85,7 +85,7 @@ impl Game {
 
         if let Some(button_args) = e.button_args() {
             match button_args.button {
-                Button::Keyboard(Key::Space) => self.boost_key = button_args.state,
+                Button::Keyboard(Key::Space) => self.boost = button_args.state == ButtonState::Press,
                 _ => ()
             };
         }

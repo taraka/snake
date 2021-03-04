@@ -1,5 +1,5 @@
 use std::collections::LinkedList;
-use piston::input::{GenericEvent,Button, Key};
+use piston::input::{GenericEvent,Button, Key, ButtonState};
 use rand::Rng;
 
 pub type SnakeCell = (i32, i32);
@@ -14,10 +14,10 @@ pub enum Direction {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum State {
+    START,
     PAUSED,
     RUNNING,
     DEAD,
-    WIN
 }
 
 pub struct Game {
@@ -29,6 +29,7 @@ pub struct Game {
     pub tick_time: f64,
     pub state: State,
     input_queue: LinkedList<Key>,
+    boost_key: ButtonState,
 }
 
 impl Game {
@@ -39,10 +40,10 @@ impl Game {
             height: height,
             width: width,
             last_update: 0.0,
-            tick_time: 5.0/width as f64,
-            state: State::PAUSED,
+            tick_time: 4.0/width as f64,
+            state: State::START,
             input_queue: LinkedList::new(),
-
+            boost_key: ButtonState::Release,
         };
 
         game.new_apple();
@@ -56,7 +57,14 @@ impl Game {
         if let Some(args) = e.update_args() {
             self.last_update += args.dt;
 
-            if self.last_update >= self.tick_time {
+
+            let tick_time = if self.boost_key == ButtonState::Press {
+                self.tick_time / 2.0
+            } else {
+                self.tick_time
+            };
+
+            if self.last_update >= tick_time {
                 self.last_update = 0.0;
                 if self.state == State::RUNNING {
                     self.tick();
@@ -69,8 +77,17 @@ impl Game {
                 Key::W | Key::A | Key::S | Key::D => self.input_queue.push_back(key),
                 Key::P => self.pause(),
                 Key::R => self.reset(),
+                Key::Equals => self.bigger(),
+                Key::Minus => self.smaller(),
                 _ => ()
             }
+        }
+
+        if let Some(button_args) = e.button_args() {
+            match button_args.button {
+                Button::Keyboard(Key::Space) => self.boost_key = button_args.state,
+                _ => ()
+            };
         }
     }
     
@@ -138,7 +155,7 @@ impl Game {
 
         if eat_apple {
             self.new_apple();
-            self.tick_time = self.tick_time * 0.95;
+            self.tick_time = self.tick_time * 0.97;
         }
     }
 
@@ -147,9 +164,11 @@ impl Game {
     }
 
     fn pause(&mut self) {
+        self.input_queue.clear();
+
         match self.state {
             State::RUNNING => self.state = State::PAUSED,
-            State::PAUSED => self.state = State::RUNNING,
+            State::START | State::PAUSED => self.state = State::RUNNING,
             _ => ()
         }
     }
@@ -158,9 +177,26 @@ impl Game {
         self.snake = Snake::new();
         self.last_update = 0.0;
         self.tick_time = 0.4;
-        self.state = State::PAUSED;
+        self.state = State::START;
         self.input_queue = LinkedList::new();
         self.new_apple();
+    }
+
+    fn bigger(&mut self) {
+        if self.state == State::START {
+            self.width += 5;
+            self.height += 5;
+            self.tick_time = 4.0/self.width as f64;
+        }
+    }
+
+    fn smaller(&mut self) {
+        if self.state == State::START && self.width > 10 && self.height > 10 {
+            self.width -= 5;
+            self.height -= 5;
+            self.tick_time = 4.0/self.width as f64;
+            self.new_apple();
+        }
     }
 }
 

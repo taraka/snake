@@ -10,7 +10,7 @@ use piston::Size;
 use crate::game::Game;
 use crate::draw::draw_game;
 
-const SIZE: (i32, i32) = (20, 20);
+const SIZE: (i32, i32) = (40, 40);
 
 fn main() {
     let opengl = OpenGL::V3_2;
